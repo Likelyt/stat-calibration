@@ -44,11 +44,9 @@ class Model_1:
         # initialize theta
         gap = 5
         if t == 0:
-            #theta = self.init_theta.clone().detach().requires_grad_(True)
-            theta = self.init_theta
-            logger.info('Model 1 Start from {}'.format(theta))
+            theta = self.init_theta.clone().detach().requires_grad_(True)
         else:
-            logger.info('Model 2 Start from {}'.format(theta))
+            #print('Model 2 Start from {}'.format(theta))
             theta = theta.clone().detach().requires_grad_(True)
         
         # define the optimizer
@@ -60,6 +58,7 @@ class Model_1:
         #store the loss and theta
         loss_list = []
         lrs = []
+        
         if t > 0:
             self.n_train = len(train_y)
             _, K = model_2.pred(train_x, 'train')
@@ -72,62 +71,26 @@ class Model_1:
                 #self.K_dyn = (self.K_dyn + self.K)/(t)
                 self.K_dyn = self.K
                 
-        # train the model    
-        epsilon = 1e-5
+        # train the model        
         for i in range(self.epoch):
             # forward pass
-            eta_est = self.y_s_fun(train_x, theta) 
+            eta_est = self.y_s_fun(train_x, theta)            
             if self.loss_space == 'RKHS':
                 if t == 0:
                     loss = loss_func(eta_est, train_y)
-                    # perturbed
-                    gradient_approximation = torch.zeros(self.d_theta)
-                    for d in range(self.d_theta):
-                        theta_perturbed = theta.clone().detach().requires_grad_(False)
-                        #logger.info("Theta Perturbed: {}".format(theta_perturbed))
-                        theta_perturbed[d] += epsilon
-                        theta_perturbed = theta_perturbed.requires_grad_(True)
-                        eta_est_pert = self.y_s_fun(train_x, theta_perturbed) 
-                        loss_pert = loss_func(eta_est_pert, train_y)
-                        gradient_approximation[d] = (loss_pert - loss) / epsilon 
-                    # Perturb the input tensor
                 else:
                     # train_y: y - delta_hat
                     # eta_est: estimated eta(x, theta_hat)
-                    loss = torch.matmul(torch.matmul((train_y - eta_est).view(1, self.n_train), torch.linalg.inv(self.K_dyn)), (train_y - eta_est).view(self.n_train, 1)) / self.n_train
-                    # perturbed
-                    gradient_approximation = torch.zeros(self.d_theta)
-                    for d in range(self.d_theta):
-                        theta_perturbed = theta.clone().detach().requires_grad_(False)
-                        #logger.info("Theta Perturbed: {}".format(theta_perturbed))
-                        theta_perturbed[d] += epsilon
-                        theta_perturbed = theta_perturbed.requires_grad_(True)
-                        eta_est_pert = self.y_s_fun(train_x, theta_perturbed) 
-                        loss_pert = torch.matmul(torch.matmul((train_y - eta_est_pert).view(1, self.n_train), torch.linalg.inv(self.K_dyn)), (train_y - eta_est_pert).view(self.n_train, 1)) / self.n_train
-                        gradient_approximation[d] = (loss_pert - loss) / epsilon 
-                theta.grad = gradient_approximation.to(theta.dtype)
-                # if ((i+1)%100) == 0:
-                #     logger.info("Grad App: {}".format(theta.grad))
-            
+                    train_y = train_y
+                    loss = torch.matmul(torch.matmul((train_y - eta_est).view(1, self.n_train), torch.linalg.inv(self.K_dyn).float()), (train_y - eta_est).view(self.n_train, 1)) / self.n_train
             elif self.loss_space == 'L2':
                 loss = loss_func(eta_est, train_y)
-                gradient_approximation = torch.zeros(self.d_theta)
-                for d in range(self.d_theta):
-                    theta_perturbed = theta.clone().detach().requires_grad_(False)
-                    #logger.info("Theta Perturbed: {}".format(theta_perturbed))
-                    theta_perturbed[d] += epsilon
-                    theta_perturbed = theta_perturbed.requires_grad_(True)
-                    eta_est_pert = self.y_s_fun(train_x, theta_perturbed) 
-                    loss_pert = loss_func(eta_est_pert, train_y)
-                    gradient_approximation[d] = (loss_pert - loss) / epsilon 
-                theta.grad = gradient_approximation.to(theta.dtype)
             # backward pass
-            # print(theta.grad)
-            # optimizer.zero_grad()
-            # loss.backward()
-            # optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
             #scheduler.step()
-            theta = theta - self.lr * (1.0/np.sqrt(i+1)) * theta.grad
+            
             loss_list.append(loss.item())
             self.theta_list[i,] = theta.detach()
             
@@ -138,9 +101,8 @@ class Model_1:
                 break 
             
             # print the loss
-            # if (i+1) % 100 == 0:
+            # if (i+1) % 5 == 0:
             #     logger.info('epoch: {}, theta: {}, loss: {}'.format(i, theta.detach(), loss.item()))
-                
             #if t > 0 and i % 400 == 0:
             #    logger.info('epoch: %d, theta: {}, loss: {} \n  pred_y_s: {}, pred_delta: {}'.format(i, theta.item(), loss.item(), y_s_hat[0], delta_pred[0], ))
 
@@ -252,8 +214,8 @@ class Model_2:
                                alpha=np.logspace(0, 2, 50))
         elif self.kernel_method == 'rbf' or 'laplacian' or 'polynomial':
             estimator = sklearn.kernel_ridge.KernelRidge(kernel=self.kernel_method)
-            hyper_space = dict(alpha=np.logspace(-1, 2, 100), 
-                               gamma=np.logspace(-2, 2, 50))
+            hyper_space = dict(alpha=np.logspace(0, 5, 50), 
+                               gamma=np.logspace(-2, 2, 25))
         elif self.kernel_method == 'ExpSineSquared':
             #https://stackoverflow.com/questions/58938819/optimise-custom-gaussian-processes-kernel-in-scikit-using-gridsearch
             kernel_gpml = ExpSineSquared(length_scale=0.5, periodicity=1.0)
@@ -310,8 +272,8 @@ class Model_2:
         K = GramMatrix(x, self.opt_gamma)
         return pred_y, K
 
-def Train(conf, model_choice, loss_space, train_data_init, test_data, epoch_out, epoch_in, \
-                init_theta, lr, d_x, d_theta, kernel_method, fit_obj, seed, stop_criterion, out_stop_cri='MSE'):
+def Train(conf, model_choice, loss_space, train_data_init, test_data, batch_size, epoch_out, epoch_in, \
+                init_theta, lr, d_x, d_theta, kernel_method, fit_obj, seed, stop_criterion, out_stop_cri='RKHS'):
     # Step 0: Prepare the data
     x_test = test_data['x_test']
     y_test = test_data['y_test']
@@ -349,8 +311,7 @@ def Train(conf, model_choice, loss_space, train_data_init, test_data, epoch_out,
             loss_1, theta_list_1, theta_opt = model_1.train(train_x_full, train_y_full, t, theta, model_2, gamma_opt)
         
         y_2_tidle = model_1.pred(train_x_full, train_y_full) #delta hat, use x to predict delta
-        #logger.info("y_2_tidle: {}".format(y_2_tidle.clone().detach()))
-        _, gamma_opt = model_2.delta_estimate(train_x_full, y_2_tidle.clone().detach())
+        _, gamma_opt = model_2.delta_estimate(train_x_full, y_2_tidle)
         
         theta = model_1.theta_opt.clone().detach()
 
@@ -392,8 +353,7 @@ class Full_model:
         if task == 'test':
             y_1_eta_hat = self.model_1.y_s_fun(x_test, theta_opt) # estimated eta
             y_2_delta_hat, _ = self.model_2.pred(x_test, task, gamma_opt, best_index_2) # estimated delta
-            #logger.info("y_1_eta_hat: {}".format(y_1_eta_hat.clone().detach()))
-            pred_y = y_1_eta_hat.clone().detach() + y_2_delta_hat
+            pred_y = y_1_eta_hat + y_2_delta_hat
         elif task == 'test-RKHS':
             pred_y = self.model_1.y_s_fun(x_test, theta_opt) # estimated eta
         return pred_y
@@ -408,149 +368,254 @@ class Full_model:
             K = torch.from_numpy(para_set['K'])
             n = len(y_test)
             K = K + n * alpha * np.eye(n)
-            loss_val = torch.matmul(torch.matmul((y_test - y_pred).view(1, n), torch.linalg.inv(K)), (y_test - y_pred).view(n, 1)) / n
+            loss_val = torch.matmul(torch.matmul((y_test - y_pred).view(1, n), torch.linalg.inv(K).float()), (y_test - y_pred).view(n, 1)) / n
             return loss_val.item()
         
         
-def plot_pred(d, x_test, y_test, y_train_test_pred_A, configuration, i):
+def plot_pred(d, x_test, y_test, y_train_test_pred_A, configuration, std, n_train, i):
     y_pred = y_train_test_pred_A 
     if d == 1:
         plt.figure(figsize=(8, 6))
         plt.plot(x_test, y_test, 'b.', label='True')
         plt.plot(x_test, y_pred, 'r.', label='Predicted')
         plt.legend()
-        plt.title('Configuration: %s, rep: %d' % (configuration, i))
-        plt.savefig('figs/ssc_real_full_%s_rep_%d.pdf' % (configuration, i))
+        plt.title('Configuration: %s, var: %.2f, n_train: %d, rep: %d' % (configuration, np.power(std,2), n_train, i+1))
+        plt.savefig('figs/ssc_full_%s_var_%.2f_sample_%d_rep_%d.pdf' % (configuration, np.power(std,2), n_train, i+1))
         plt.close()
-        if i == 6:
-            fig = plt.figure(figsize=(8, 6))
-            # plot x_test and true point y_test and predicted point y_pred with different marker
-            plt.scatter(x_test, y_test, label='True', marker='x', color='r')
-            plt.scatter(x_test, y_pred, label='Predicted', marker='o', color='b')
-            plt.legend(fontsize=14)
-            plt.title('Ion Channels Example', fontsize=14)
-            plt.xlabel('log(time)', fontsize=14)
-            plt.ylabel('Normalized Current', fontsize=14)
-            plt.xticks(fontsize=14)
-            plt.yticks(fontsize=14)
-            plt.savefig('figs/ssc_real_final_%s_rep_%d.pdf' % (configuration, i))
-            plt.close()
+    elif d == 2:
+        # Create a 3D plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        # Scatter plot the data points
+        ax.scatter(x_test[:,0], x_test[:,1], y_test, c='r', marker='x', label='True')
+        ax.scatter(x_test[:,0], x_test[:,1], y_pred, c='b', marker='o', label='Predicted')
+        # Set labels for axes
+        ax.set_xlabel('X1')
+        ax.set_ylabel('X2')
+        ax.set_zlabel('Y')
+        # Set the legend and label 
+        ax.legend(['True', 'Predicted'])
+        plt.title('Configuration: %s, var: %.2f, n_train: %d, rep: %d' % (configuration, np.power(std,2), n_train, i+1))
+        # save the plot
+        plt.savefig('figs/ssc_full_%s_var_%.2f_sample_%d_rep_%d.pdf' % (configuration, np.power(std,2), n_train, i+1))
+        plt.close()
+    else:
+        plt.figure(figsize=(8, 6))
+        plt.plot(x_test, y_test, 'b.', label='True')
+        plt.plot(x_test, y_pred, 'r.', label='Predicted')
+        plt.legend()
+        plt.title('Configuration: %s, std: %.2f, n_train: %d, rep: %d' % (configuration, np.power(std,2), n_train, i+1))
+        plt.savefig('figs/ssc_full_%s_var_%.2f_sample_%d_rep_%d.pdf' % (configuration, np.power(std,2), n_train, i+1))
+        plt.close()
     
-        
 class Stat_Cali(object):
-    def __init__(self, rep, lr, epoch_in, epoch_out, stop_criterion, configurations, kernel_method, fit_obj, loss_space, out_stop_cri):
+    def __init__(self, loss_space, n_trains, batch_size, lr, stds, reps, epoch_in, epoch_out, kernel_method, fit_obj, stop_criterion, out_stop_cri, configurations=['conf_0', 'conf_1', 'conf_2', 'conf_3', 'conf_4']):
         self.seed = 12345
-        self.n_test = 200
+        self.n_test = 500
         self.configurations = configurations
 
+        self.n_trains = n_trains
+        self.stds = stds
+        self.reps = reps
         self.lr = lr
-        self.epoch_in = epoch_in
         self.epoch_out = epoch_out
+        self.epoch_in = epoch_in
+        self.batch_size = batch_size
         self.stop_criterion = stop_criterion
         self.val_size = 0.2
         self.kernel_method = kernel_method
         self.fit_obj = fit_obj
         self.loss_space = loss_space
         self.out_stop_cri = out_stop_cri
-        self.reps = rep  
         
     def run(self):
         # Step 1: hyperparameters for the theta estimation
         self.results_test = {}
-        self.results_test['test'] = []
-        d_x = 1
-        d_theta = 3
-        init_theta = torch.tensor([0.5, 0.5, 0.5], requires_grad=True)
+
+        for configuration in tqdm(self.configurations, desc=f'Configuration'):
+            for std in tqdm(self.stds):
+                for batch_s, n_train in enumerate(self.n_trains):
+                    test_error = []
+                    for i in range(self.reps):
+                        self.seed = self.seed + i
+                        logger.info("----------------------------------------------------------------------")
+                        logger.info('Conf: %s, var: %.2f, rep: %d' % (configuration, np.power(std,2), i+1))
+                        sys.stdout.flush()
+                        if configuration == 'conf_0':
+                            theta = torch.tensor(1)
+                            d_theta = 1
+                            d_x = 1
+                            conf = CONF_0(theta)
+                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
+                            #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
+                            x_val, y_val = x_train, y_train
+                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed) 
+                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
+                            init_theta = torch.zeros(d_theta) 
+                            
+                        elif configuration == 'conf_1':
+                            theta = torch.tensor([0.2, 0.3])
+                            d_theta = len(theta)
+                            d_x = 1
+                            conf = CONF_1(theta)
+                            #print('True theta is {}' .format(theta))
+                            # train/test data create
+                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
+                            # split the train data into train and validation
+                            #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
+                            x_val, y_val = x_train, y_train
+                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed)
+                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
+                            init_theta = torch.tensor([0.1, 0.1])
+
+                        elif configuration == 'conf_2':
+                            theta = torch.tensor([0.2,0.3,0.8])
+                            d_theta = len(theta)
+                            d_x = 2
+                            conf = CONF_2(theta)
+                            #print('True theta is {}' .format(theta))
+                            # train/test data create
+                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
+                            #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
+                            x_val, y_val = x_train, y_train
+                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed)
+                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
+                            init_theta = torch.tensor([0.2, 0.2, 0.2])    
+                            
+                        elif configuration == 'conf_3':
+                            theta = torch.tensor([0.2,0.4])
+                            d_theta = len(theta)
+                            d_x = 2
+                            conf = CONF_3(theta)
+                            #print('True theta is {}' .format(theta))
+                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
+                            #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
+                            x_val, y_val = x_train, y_train
+                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed)
+                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
+                            init_theta = torch.tensor([0.1, 0.1])    
+                            
+                        elif configuration == 'conf_4':
+                            theta = torch.tensor([0.6,0.2])
+                            d_theta = len(theta)
+                            d_x = 2
+                            conf = CONF_4(theta)
+                            #print('True theta is {}' .format(theta))
+                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
+                            #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
+                            x_val, y_val = x_train, y_train
+                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed)
+                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
+                            init_theta = torch.tensor([0.1, 0.1])    
+                            
+                        elif configuration == 'conf_5':
+                            theta = torch.tensor(0)
+                            d_theta = 1
+                            d_x = 1
+                            conf = CONF_5(theta)
+                            #print('True theta is {}' .format(theta))
+                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
+                            x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
+                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed)
+                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
+                            init_theta = torch.zeros(d_theta) 
+
+                        train_data = Mydataset(x_train, y_train, delta_train, y_s_train)
+                        val_data = {}
+                        val_data['x_val'] = x_val
+                        val_data['y_val'] = y_val
+                        
+                        test_data = {}
+                        test_data['x_test'] = x_test
+                        test_data['y_test'] = y_test
+                        test_data['delta_test'] = delta_test
+                        test_data['y_s_test'] = y_s_test
+                        
+                        logger.info("Start Training Model A!!!")
+                        model_choice = 'A'
+                        predicted_y_A, model_save_A, best_model_A_index = \
+                            Train(conf, model_choice, self.loss_space, train_A, test_data, self.batch_size[batch_s], self.epoch_out, self.epoch_in, init_theta, self.lr, d_x, d_theta, self.kernel_method, self.fit_obj, self.seed, self.stop_criterion, self.out_stop_cri)
+                        # logger.info("-------------------------Start Training Model B!!!--------------------")
+                        # model_choice = 'B'
+                        # predicted_y_B, model_save_B, best_model_B_index =\
+                        #         Train(conf, model_choice, self.loss_space, train_B, test_data, self.batch_size[batch_s], self.epoch_out, self.epoch_in, init_theta, self.lr, d_x, d_theta, self.kernel_method, self.fit_obj, self.seed, self.stop_criterion)
+                            
+                        # run the model on the test data
+                        # val_error = np.zeros((len(model_save_A), len(model_save_B)))
+                        # # cross square loss
+                        # index_A = 0
+                        # for key_A in model_save_A.keys():
+                        #     index_B =  0
+                        #     full_model_A, theta_A, gamma_opt_A = model_save_A[key_A]
+                        #     y_val_pred_A = full_model_A.predict(x_val, theta_A, gamma_opt_A)
+                        #     for key_B in model_save_B.keys():
+                        #         full_model_B, theta_B, gamma_opt_B = model_save_B[key_B]
+                        #         y_val_pred_B = full_model_B.predict(x_val, theta_B, gamma_opt_B)
+                        #         val_error_AB = full_model_B.test_error((y_val_pred_A + y_val_pred_B)/2, y_val)
+                        #         val_error[index_A, index_B] = val_error_AB
+                        #         index_B += 1
+                        #     index_A += 1
+                        
+                        # find the optimal index of combination of Mopdel A and Model B based on the validation loss
+                        # row is the model A, column is the model B, find the optimal row and column combination
+                        #opt_A_index, opt_B_index = np.unravel_index(np.argmin(val_error, axis=None), val_error.shape)
+                        #logger.info('Optimal A index is {}, Opt B index is {}'.format(opt_A_index + 1, opt_B_index + 1))
+                        #logger.info('Opimial Val Loss: %.6f' % (np.min(val_error, axis=None)))
+                        # select the best model index based on the validation loss
+                        
+                        # Direct use the best
+                        # best_model_A_index = 'T_%d' % (opt_A_index+1)
+                        # best_model_B_index = 'T_%d' % (opt_B_index+1)
+
+                        full_model_A_train, theta_A_train, gamma_opt_A_train = model_save_A['T_%d' % (best_model_A_index)]
+                        #full_model_B_train, theta_B_train, gamma_opt_B_train = model_save_B['T_%d' % (best_model_B_index)]
+                        y_train_test_pred_A = full_model_A_train.predict(x_test, theta_A_train, gamma_opt_A_train, 'test', best_model_A_index)
+                        #y_train_test_pred_B = full_model_B_train.predict(x_test, theta_B_train, gamma_opt_B_train, 'test', best_model_B_index)
+                        test_train_error_AB = full_model_A_train.test_error(y_train_test_pred_A, y_test)
+                        # plot the prediction
+                        plot_pred(d_x, x_test, y_test, y_train_test_pred_A, configuration, std, n_train, i)
+                        logger.info("Best Model Combination is {}, Test Loss {}".format(best_model_A_index, test_train_error_AB))
+                        test_error.append(test_train_error_AB)
+                        
+                    self.results_test['%s_std_%.2f_sample_%d' % (configuration, std, n_train)] = test_error
+                    # logger.info('{}, Test Loss: {}, std: {} '.format(configuration, np.mean(test_error), np.std(test_error)))
+        # save the best as the json file
+        save_result(self.results_test, 'result/ssc_full_std_%s_configs_%s.json' % (np.power(self.stds,2), self.configurations))
+        #print('***********************************')
         
-        x = torch.tensor([-1.71479842809193, -1.02165124753198, -0.579818495252942, -0.198450938723838, 0.0953101798043249,
-                    0.350656871613169, 0.598836501088704, 0.824175442966349, 1.03673688495002, 1.23547147138531,
-                    1.43031124653667, 1.62136648329937, 1.80500469597808, 1.98513086220859, 2.16332302566054,
-                    2.33795223683134, 2.50959926237837, 2.67965072658051, 2.84954976337591]).double()
+        # calculat the test mean and std over 100 replications        
+        # best_test = Best_iter(self.results_test, self.stds, self.configurations)
+        # Table_Res(best_test, self.stds, self.configurations)
+        for key in self.results_test.keys():
+            logger.info('{}, Test Loss: {}, std: {} '.format(key, np.mean(self.results_test[key]), np.std(self.results_test[key])))
 
-        y = torch.tensor([0.0538181818181818, 0.0878181818181818, 0.121090909090909, 0.135636363636364, 0.118363636363636,
-                        0.0900000000000000, 0.0649090909090909, 0.0470909090909091, 0.0338181818181818,
-                        0.0243636363636364, 0.0174545454545455, 0.0118181818181818, 0.00890909090909091, 0.00600000000000000,
-                        0.00454545454545455, 0.00272727272727273, 0.00236363636363636, 0.00181818181818182, 0.00127272727272727]).double()
 
-        # create the obs data into dataframe
-        obs_data = pd.DataFrame({'x': x, 'y': y})
-        #obs_data.to_csv('obs_data.csv')
-        
-        # create a cross validation set with 5 folds
-        x_test_all = []
-        y_test_all = []
-        y_test_pred_all = []
-        for rep in range(self.reps):
-            logger.info('--------------------    REP {}     -----------------------'.format(rep))
-            kf = KFold(n_splits=5, shuffle=True, random_state=self.seed+rep)
-            # create the train and test data
-            z = 1
-            test_error_i = []
-            for train_index, test_index in kf.split(obs_data):                
-                logger.info('{}, fold {}'.format(self.configurations, z))
-                obs_train, obs_test = obs_data.iloc[train_index], obs_data.iloc[test_index]
-                
-                conf = CONF_Heart(torch.tensor(np.array(obs_train['x'])), torch.tensor(np.array(obs_train['y'])))
-                
-                x_train_obs, y_train_obs = env_real(np.array(obs_train['x']), np.array(obs_train['y']))
-                train_A, train_B = data_switch_real(x_train_obs, y_train_obs, d_x, self.seed)
 
-                test_data = {}
-                test_data['x_test'] = obs_test['x'].tolist()
-                test_data['y_test'] = obs_test['y'].tolist()
-                x_test = torch.tensor(np.array(test_data['x_test']))
-                y_test = torch.tensor(np.array(test_data['y_test']))
-
-                logger.info("Start Training Model A!!!")
-                model_choice = 'A'
-                predicted_y, model_save, best_model_index = \
-                    Train(conf, model_choice, self.loss_space, train_A, test_data, self.epoch_out, self.epoch_in, init_theta, self.lr, d_x, d_theta, self.kernel_method, self.fit_obj, self.seed, self.stop_criterion, self.out_stop_cri)               
-                
-                full_model_A_train, theta_A_train, gamma_opt_A_train = model_save['T_%d' % (best_model_index)]
-                y_train_test_pred_A = full_model_A_train.predict(x_test, theta_A_train, gamma_opt_A_train, 'test', best_model_index)
-                test_train_error_AB = full_model_A_train.test_error(y_train_test_pred_A, y_test)
-                test_error_i.append(test_train_error_AB)
-                self.results_test['rep_%s_fold_%d_x_test_y_test_y_pred' % (rep+1, z)] = [np.array(x_test).tolist(), np.array(y_test).tolist(), np.array(y_train_test_pred_A).tolist()]
-                
-                # x_test_all.append(np.array(x_test))
-                # y_test_all.append(np.array(y_test))
-                # y_test_pred_all.append(np.array(y_train_test_pred_A))
-                
-                # plot_pred(d_x, x_test, y_test, y_train_test_pred_A, self.configurations,z)
-                logger.info('{}, Opimial Test error is {}'.format(self.configurations, test_train_error_AB))
-                z += 1
-                
-            logger.info('The rep {}: mean {}'.format(rep+1, np.mean(test_error_i)))
-            self.results_test['test'].append(np.mean(test_error_i))
-        # save the best to the json file
-        save_result(self.results_test, 'result/real_ssc_full_data_result.json')
-        logger.info("The final mean is {}, sd is {}".format(np.mean(self.results_test['test']), np.std(self.results_test['test'])))
-        # plot the prediction
-        # save_result_for_plot = {}
-        # save_result_for_plot['x_test'] = np.concatenate(x_test_all).tolist()
-        # save_result_for_plot['y_test'] = np.concatenate(y_test_all).tolist()
-        # save_result_for_plot['y_pred'] = np.concatenate(y_test_pred_all).tolist()
-        # save_result(save_result_for_plot, 'result/real_ssc_full_data_result.json')
-        # plot_pred(d_x, np.concatenate(x_test_all), np.concatenate(y_test_all), np.concatenate(y_test_pred_all), self.configurations, z)
 def main():
-    rep = 100  
-    epoch_in = 2000 # 2000
-    epoch_out = 3 # 3
+    n_trains = [50] # simulation sample size
+    stds = [np.sqrt(0.1), np.sqrt(0.25), np.sqrt(0.5), np.sqrt(1)] # np.sqrt(0.1), np.sqrt(0.25), np.sqrt(0.5), np.sqrt(1)
+    reps = 100 # repeat for 100 times
+
+    # hyparparameters for the model
+    epoch_in = 1000 # model 1 maximum inner iteration
+    epoch_out = 3 # maximum outer interation
     kernel_method = 'rbf' # 'rbf', 'matern', 'ExpSineSquared', 'laplacian_kernel', 'polynomial'
     fit_obj = 'y' # 'residual', 'y'
     if fit_obj == 'residual':
         loss_space = 'L2' # 'RKHS', 'L2'
-        out_stop_cri= "MSE" # RKHS
+        out_stop_cri= "MSE" # RKHS, MSE
     elif fit_obj == 'y':
         loss_space = 'RKHS' # 'RKHS', 'L2'
-        out_stop_cri= "RKHS" # RKHS
+        out_stop_cri= "RKHS" # RKHS, MSE
 
 
-    stop_criterion = 1e-4
-    lr = 20
-    configurations = 'conf_heart' 
-    stat = Stat_Cali(rep, lr, epoch_in, epoch_out, stop_criterion, configurations, kernel_method, fit_obj, loss_space, out_stop_cri)
+    stop_criterion = 1e-4 # the minimum relative change of the loss function for the inner iteration to stop
+    lr = 1e-4 # learning rate for sgd
+    batch_size = [50] 
+    configurations = ['conf_0', 'conf_1', 'conf_2', 'conf_3', 'conf_4'] # ['conf_0', 'conf_1', 'conf_2', 'conf_3', 'conf_4']
+
+    stat = Stat_Cali(loss_space, n_trains, batch_size, lr, stds, reps, epoch_in, epoch_out, kernel_method, fit_obj, stop_criterion, out_stop_cri, configurations)
     stat.run()
-
+    
 if __name__ == '__main__':
     main()

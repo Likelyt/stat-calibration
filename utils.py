@@ -8,6 +8,7 @@ from tqdm import tqdm
 import os
 import sys
 import json
+from scipy.stats import qmc
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,27 +33,28 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
         if sample == 'train':
             x = torch.zeros(n)
             for i in range(n):
-                x[i] = 2 * torch.pi * i / (n-1)
-            
-            for i in range(n):
+                x[i] = 2 * torch.pi * (i+1) / n
                 delta_value[i] = conf.delta(x[i], true_theta)
-            eta_value[i] = conf.eta(x[i], true_theta)
-            y[i] = conf.gen_y(x[i], true_theta) + noise[i]
+                eta_value[i] = conf.eta(x[i], true_theta)
+                y[i] = conf.gen_y(x[i], true_theta) + noise[i]
         elif sample == 'test':
             x = torch.zeros(n)
             # uniform sampling from [0,2pi]
             for i in range(n):  
                 x[i] = 2 * torch.pi * torch.rand(1)
-            
-            for i in range(n):
                 delta_value[i] = conf.delta(x[i], true_theta)
-            eta_value[i] = conf.eta(x[i], true_theta)
-            y[i] = conf.gen_y(x[i], true_theta)
+                eta_value[i] = conf.eta(x[i], true_theta)
+                y[i] = conf.gen_y(x[i], true_theta)
             
     elif configuration == "conf_1":
         # uniform sampling from [0,1]  
         if sample == 'train':     
-            x = torch.rand(n)
+            sampler = qmc.LatinHypercube(d=1)
+            np.random.seed(seed)
+            sample = sampler.random(n)
+            l_bounds = [0]
+            u_bounds = [1]
+            x = torch.tensor(qmc.scale(sample, l_bounds, u_bounds)).reshape(1,-1)[0]
             for i in range(n):
                 delta_value[i] = conf.delta(x[i])
                 eta_value[i] = conf.eta(x[i], true_theta)
@@ -67,7 +69,12 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
             
     elif configuration == "conf_2" or configuration == "conf_3" or configuration == "conf_4":
         if sample == 'train': 
-            x = torch.rand((n,2))
+            sampler = qmc.LatinHypercube(d=2)
+            np.random.seed(seed)
+            sample = sampler.random(n)
+            l_bounds = [0, 0]
+            u_bounds = [1, 1]
+            x = torch.tensor(qmc.scale(sample, l_bounds, u_bounds))
             for i in range(n):
                 delta_value[i] = conf.delta(x[i, ])
                 eta_value[i] = conf.eta(x[i, ], true_theta)
@@ -97,10 +104,7 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
                 y[i] = conf.gen_y(x[i], true_theta)
         #plt.scatter(x, y)
         #plt.show()
-    return x, y, delta_value, eta_value
-
-
-
+    return x.float(), y.float(), delta_value, eta_value
 
 class CONF_0:
     def __init__(self, theta):
@@ -127,8 +131,8 @@ class CONF_1:
         self.d = len(self.theta)
     
     def eta(self, x, theta):
-        threshold_first_dim = torch.tensor([0.001, 0.25])
-        threshold_second_dim = torch.tensor([0.001, 0.5])
+        threshold_first_dim = torch.tensor([0, 0.25])
+        threshold_second_dim = torch.tensor([0, 0.5])
         clamped_theta = torch.tensor([
             torch.clamp(theta[0], threshold_first_dim[0], threshold_first_dim[1]),
             torch.clamp(theta[1], threshold_second_dim[0], threshold_second_dim[1])
@@ -153,7 +157,7 @@ class CONF_2:
         self.d = len(self.theta)
     
     def eta(self, x, theta):
-        threshold_dim = torch.tensor([[0.001, 0.5],[0.001, 1.0], [0.001, 2.0]])
+        threshold_dim = torch.tensor([[0.001, 0.25],[0.001, 0.5], [0.001, 1.0]])
         clamped_theta = torch.tensor([
             torch.clamp(theta[0], threshold_dim[0,0], threshold_dim[0,1]),
             torch.clamp(theta[1], threshold_dim[1,0], threshold_dim[1,1]),
@@ -279,12 +283,12 @@ class CONF_Heart:
         return ans
 
     def eta(self, x, theta):
-        e1 = torch.tensor([1.0, 0.0, 0.0, 0.0])
-        e4 = torch.tensor([0.0, 0.0, 0.0, 1.0])
+        e1 = torch.tensor([1.0, 0.0, 0.0, 0.0], requires_grad=False)
+        e4 = torch.tensor([0.0, 0.0, 0.0, 1.0], requires_grad=False)
         self.eta_value = torch.zeros(len(x))
         for i in range(len(x)):
             self.eta_value[i] = torch.dot(torch.matmul(e1, torch.linalg.matrix_exp(self.A(theta) * torch.exp(x[i]))), e4)
-        return self.eta_value.double() 
+        return self.eta_value.double()
 
     
     
@@ -327,11 +331,19 @@ def data_switch(x, y, y_s, d_x, seed):
     
     return train_A, train_B
 
+
+def data_switch_regular(x, y, y_s, d_x, seed):
+    train_data = {}
+    train_data['train_x'] = x
+    train_data['train_y'] = y
+    
+    return train_data
+
 def data_switch_real(x, y, d_x, seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     n = len(y)
-    train1_index = np.random.choice(n, int(n/2), replace=False)
+    train1_index = np.array(range(0,n,2))
     train1_index.sort()
     train2_index = np.setdiff1d(np.arange(n), train1_index)
 
