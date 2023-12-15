@@ -49,3 +49,8 @@ nohup python main_sim.py > logs/log_sim.txt &
 nohup python main_sim.py > logs/log_real.txt &
 ```
 
+## Result
+
+1. `\logs` folder: find the PMSE result and corresponding standard deviation over 100 replications.
+
+2. `\figs` folder: plot the predicted fitting curve and true curve.
