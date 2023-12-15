@@ -441,11 +441,11 @@ class Stat_Cali(object):
                         logger.info("----------------------------------------------------------------------")
                         logger.info('Conf: %s, var: %.2f, rep: %d' % (configuration, np.power(std,2), i+1))
                         sys.stdout.flush()
-                        if configuration == 'conf_0':
+                        if configuration == 'conf_1':
                             theta = torch.tensor(1)
                             d_theta = 1
                             d_x = 1
-                            conf = CONF_0(theta)
+                            conf = CONF_1(theta)
                             x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
                             #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
                             x_val, y_val = x_train, y_train
@@ -453,11 +453,11 @@ class Stat_Cali(object):
                             x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
                             init_theta = torch.zeros(d_theta) 
                             
-                        elif configuration == 'conf_1':
+                        elif configuration == 'conf_2':
                             theta = torch.tensor([0.2, 0.3])
                             d_theta = len(theta)
                             d_x = 1
-                            conf = CONF_1(theta)
+                            conf = CONF_2(theta)
                             #print('True theta is {}' .format(theta))
                             # train/test data create
                             x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
@@ -468,11 +468,11 @@ class Stat_Cali(object):
                             x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
                             init_theta = torch.tensor([0.1, 0.1])
 
-                        elif configuration == 'conf_2':
+                        elif configuration == 'conf_3':
                             theta = torch.tensor([0.2,0.3,0.8])
                             d_theta = len(theta)
                             d_x = 2
-                            conf = CONF_2(theta)
+                            conf = CONF_3(theta)
                             #print('True theta is {}' .format(theta))
                             # train/test data create
                             x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
@@ -482,21 +482,8 @@ class Stat_Cali(object):
                             x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
                             init_theta = torch.tensor([0.2, 0.2, 0.2])    
                             
-                        elif configuration == 'conf_3':
-                            theta = torch.tensor([0.2,0.4])
-                            d_theta = len(theta)
-                            d_x = 2
-                            conf = CONF_3(theta)
-                            #print('True theta is {}' .format(theta))
-                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
-                            #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
-                            x_val, y_val = x_train, y_train
-                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed)
-                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
-                            init_theta = torch.tensor([0.1, 0.1])    
-                            
                         elif configuration == 'conf_4':
-                            theta = torch.tensor([0.6,0.2])
+                            theta = torch.tensor([0.2,0.4])
                             d_theta = len(theta)
                             d_x = 2
                             conf = CONF_4(theta)
@@ -509,10 +496,23 @@ class Stat_Cali(object):
                             init_theta = torch.tensor([0.1, 0.1])    
                             
                         elif configuration == 'conf_5':
+                            theta = torch.tensor([0.6,0.2])
+                            d_theta = len(theta)
+                            d_x = 2
+                            conf = CONF_5(theta)
+                            #print('True theta is {}' .format(theta))
+                            x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
+                            #x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
+                            x_val, y_val = x_train, y_train
+                            train_A, train_B = data_switch(x_train, y_train, y_s_train, d_x, self.seed)
+                            x_test, y_test, delta_test, y_s_test = env(configuration, conf, std, self.n_test, theta, 'test', self.seed)
+                            init_theta = torch.tensor([0.1, 0.1])    
+                            
+                        elif configuration == 'conf_6':
                             theta = torch.tensor(0)
                             d_theta = 1
                             d_x = 1
-                            conf = CONF_5(theta)
+                            conf = CONF_6(theta)
                             #print('True theta is {}' .format(theta))
                             x_train, y_train, delta_train, y_s_train = env(configuration, conf, std, n_train, theta, 'train', self.seed)
                             x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=self.val_size, random_state=self.seed)
@@ -612,7 +612,7 @@ def main():
     stop_criterion = 1e-4 # the minimum relative change of the loss function for the inner iteration to stop
     lr = 1e-4 # learning rate for sgd
     batch_size = [50] 
-    configurations = ['conf_0', 'conf_1', 'conf_2', 'conf_3', 'conf_4'] # ['conf_0', 'conf_1', 'conf_2', 'conf_3', 'conf_4']
+    configurations = ['conf_1', 'conf_2', 'conf_3', 'conf_4', 'conf_5'] 
 
     stat = Stat_Cali(loss_space, n_trains, batch_size, lr, stds, reps, epoch_in, epoch_out, kernel_method, fit_obj, stop_criterion, out_stop_cri, configurations)
     stat.run()

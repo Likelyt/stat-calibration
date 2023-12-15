@@ -6,7 +6,7 @@ This repository contains the implementation for the "statistical calibration" in
 
 1. `main_sim.py`: This file contains the python code used in simulation studies.
 
-* Configuration: We conducted 5 configurations from conf_0 to conf_4 where in paper we use conf_1 to conf_5.
+* Configuration: We conducted 5 configurations from conf_1 to conf_5.
 
 * Standard Deviation: We conducted 4 stds to demonstrate the effectiveness of our algorithms $\sigma^2$ = [0.1, 0.25, 0.5, 1].
 
@@ -25,11 +25,27 @@ This repository contains the implementation for the "statistical calibration" in
 
 ## Requirement
 
-1. create the conda env 
+1. Create the conda env `rkhs_cal_env`
 
 ```bash 
 conda env create -f rkhs_cal_env.yaml
+```
+
+2. Activate the cond env
+```bash
 conda activate rkhs_cal_env
 ```
 
+## Run the experiment
+1. Run the simulation python script.
+
+```bash
+nohup python main_sim.py > logs/log_sim.txt &
+```
+
+2. Run the real data python script.
+
+```bash
+nohup python main_sim.py > logs/log_real.txt &
+```
 

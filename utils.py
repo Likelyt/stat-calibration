@@ -27,7 +27,7 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
     delta_value = torch.zeros(n)
     eta_value = torch.zeros(n)
     
-    if configuration == "conf_0":
+    if configuration == "conf_1":
         # generate x in torch tensor
         if sample == 'train':
             x = torch.zeros(n)
@@ -45,7 +45,7 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
                 eta_value[i] = conf.eta(x[i], true_theta)
                 y[i] = conf.gen_y(x[i], true_theta)
             
-    elif configuration == "conf_1":
+    elif configuration == "conf_2":
         # uniform sampling from [0,1]  
         if sample == 'train':     
             sampler = qmc.LatinHypercube(d=1)
@@ -66,7 +66,7 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
                 eta_value[i] = conf.eta(x[i], true_theta)
                 y[i] = conf.gen_y(x[i], true_theta)
             
-    elif configuration == "conf_2" or configuration == "conf_3" or configuration == "conf_4":
+    elif configuration == "conf_3" or configuration == "conf_4" or configuration == "conf_5":
         if sample == 'train': 
             sampler = qmc.LatinHypercube(d=2)
             np.random.seed(seed)
@@ -87,7 +87,7 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
                 eta_value[i] = conf.eta(x[i, ], true_theta)
                 y[i] = conf.gen_y(x[i, ], true_theta)
                 
-    elif configuration == "conf_5":
+    elif configuration == "conf_6":
         if sample == 'train':
             x = torch.rand(n)
             for i in range(n):
@@ -105,7 +105,7 @@ def env(configuration, conf, std, n, true_theta, sample, seed):
         #plt.show()
     return x.float(), y.float(), delta_value, eta_value
 
-class CONF_0:
+class CONF_1:
     def __init__(self, theta):
         self.theta = theta
         self.d = 1
@@ -124,7 +124,7 @@ class CONF_0:
         self.y_value = torch.exp(x/10) * torch.sin(x)
         return self.y_value
     
-class CONF_1:
+class CONF_2:
     def __init__(self, theta):
         self.theta = theta
         self.d = len(self.theta)
@@ -150,7 +150,7 @@ class CONF_1:
         self.y_value = self.eta(x, theta) + self.delta(x)
         return self.y_value
     
-class CONF_2:
+class CONF_3:
     def __init__(self, theta):
         self.theta = theta
         self.d = len(self.theta)
@@ -179,7 +179,7 @@ class CONF_2:
         self.y_value = self.eta(x, theta) + self.delta(x)
         return self.y_value
     
-class CONF_3:
+class CONF_4:
     def __init__(self, theta):
         self.theta = theta
         self.d = len(self.theta)
@@ -209,7 +209,7 @@ class CONF_3:
         return self.y_value
     
 
-class CONF_4:
+class CONF_5:
     def __init__(self, theta):
         self.theta = theta
         self.d = len(self.theta)
@@ -241,7 +241,7 @@ class CONF_4:
         self.y_value = self.eta(x, theta) + self.delta(x)
         return self.y_value
         
-class CONF_5:
+class CONF_6s:
     def __init__(self, theta):
         self.theta = theta
         self.d = 1

@@ -532,6 +532,7 @@ class Stat_Cali(object):
         # save_result_for_plot['y_pred'] = np.concatenate(y_test_pred_all).tolist()
         # save_result(save_result_for_plot, 'result/real_ssc_full_data_result.json')
         # plot_pred(d_x, np.concatenate(x_test_all), np.concatenate(y_test_all), np.concatenate(y_test_pred_all), self.configurations, z)
+
 def main():
     rep = 100  
     epoch_in = 2000 # 2000
