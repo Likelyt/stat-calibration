@@ -1,0 +1,35 @@
+2023-12-15 13:25:53,415 - __main__ - INFO - ----------------------------------------------------------------------
+2023-12-15 13:25:53,415 - __main__ - INFO - Conf: conf_1, var: 0.10, rep: 1
+Configuration:   0%|          | 0/5 [00:00<?, ?it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]
+2023-12-15 13:25:53,545 - __main__ - INFO - Start Training Model A!!!
+2023-12-15 13:25:53,549 - __main__ - INFO - Outer Loop: 0
+2023-12-15 13:25:53,664 - __main__ - INFO - Model 1 stopped after: 145 iterations, Model 1 Loss: 0.4453318119049072
+2023-12-15 13:25:53,715 - __main__ - INFO - Model 1 Loss: 0.4453318119049072, Theta: tensor([-0.1676])
+2023-12-15 13:25:53,715 - __main__ - INFO - rbf kernel is Applied!
+2023-12-15 13:26:03,095 - __main__ - INFO - Model 2 Loss: 0.09590553492307663, cur gamma 0.46415888336127775, alpha 1.0
+2023-12-15 13:26:03,239 - __main__ - INFO - Curr opt model 0, Min Train RKHS Loss 0.00759
+
+2023-12-15 13:26:03,240 - __main__ - INFO - Full Data RKHS loss: 0.007586778607219458, theta: tensor([-0.1676])
+
+2023-12-15 13:26:03,240 - __main__ - INFO - Outer Loop: 1
+2023-12-15 13:26:03,373 - __main__ - INFO - Model 1 Fit y, RKHS Loss!
+2023-12-15 13:26:03,497 - __main__ - INFO - Model 1 stopped after: 11 iterations, Model 1 Loss: 0.0075867436826229095
+2023-12-15 13:26:03,498 - __main__ - INFO - Model 1 Loss: 0.0075867436826229095, Theta: tensor([-0.1673])
+2023-12-15 13:26:12,233 - __main__ - INFO - Model 2 Loss: 0.09590732306241989, cur gamma 0.46415888336127775, alpha 1.0
+2023-12-15 13:26:12,348 - __main__ - INFO - Curr opt model 1, Min Train RKHS Loss 0.00759
+
+2023-12-15 13:26:12,349 - __main__ - INFO - Full Data RKHS loss: 0.0075867436826229095, theta: tensor([-0.1673])
+
+2023-12-15 13:26:12,349 - __main__ - INFO - Outer Loop: 2
+2023-12-15 13:26:12,466 - __main__ - INFO - Model 1 Fit y, RKHS Loss!
+2023-12-15 13:26:12,594 - __main__ - INFO - Model 1 stopped after: 11 iterations, Model 1 Loss: 0.007586759515106678
+2023-12-15 13:26:12,595 - __main__ - INFO - Model 1 Loss: 0.00758674181997776, Theta: tensor([-0.1673])
+2023-12-15 13:26:20,994 - __main__ - INFO - Model 2 Loss: 0.09590747952461243, cur gamma 0.46415888336127775, alpha 1.0
+2023-12-15 13:26:21,104 - __main__ - INFO - Curr opt model 2, Min Train RKHS Loss 0.00759
+
+2023-12-15 13:26:21,104 - __main__ - INFO - Full Data RKHS loss: 0.007586743216961622, theta: tensor([-0.1673])
+
+2023-12-15 13:26:21,104 - __main__ - INFO - Training Completed! Opt model 2, Training loss 0.00759
+/Users/liyt/opt/anaconda3/lib/python3.8/multiprocessing/resource_tracker.py:216: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

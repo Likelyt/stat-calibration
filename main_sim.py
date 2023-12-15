@@ -592,27 +592,47 @@ class Stat_Cali(object):
 
 
 def main():
-    n_trains = [50] # simulation sample size
-    stds = [np.sqrt(0.1), np.sqrt(0.25), np.sqrt(0.5), np.sqrt(1)] # np.sqrt(0.1), np.sqrt(0.25), np.sqrt(0.5), np.sqrt(1)
-    reps = 100 # repeat for 100 times
-
-    # hyparparameters for the model
-    epoch_in = 1000 # model 1 maximum inner iteration
-    epoch_out = 3 # maximum outer interation
-    kernel_method = 'rbf' # 'rbf', 'matern', 'ExpSineSquared', 'laplacian_kernel', 'polynomial'
-    fit_obj = 'y' # 'residual', 'y'
-    if fit_obj == 'residual':
-        loss_space = 'L2' # 'RKHS', 'L2'
-        out_stop_cri= "MSE" # RKHS, MSE
-    elif fit_obj == 'y':
-        loss_space = 'RKHS' # 'RKHS', 'L2'
-        out_stop_cri= "RKHS" # RKHS, MSE
-
-
-    stop_criterion = 1e-4 # the minimum relative change of the loss function for the inner iteration to stop
-    lr = 1e-4 # learning rate for sgd
-    batch_size = [50] 
+    hyper_para = {
+        # env parameters
+        'n_train': [50],
+        'stds': [np.sqrt(0.1), np.sqrt(0.25), np.sqrt(0.5), np.sqrt(1)],
+        'reps': 100,
+        
+        # whole model parameters
+        'epoch_out': 3,
+        'fit_obj': 'y', # 'residual', 'y'
+        'batch_size': [50], 
+         
+        # model_1 parameter
+        'epoch_in': 1000,
+        'stop_criterion': 1e-4, # the minimum relative change of the loss function for the inner iteration to stop
+        'lr': 1e-4, # learning rate for sgd, 
+        
+        # model_2 parameters
+        'kernel_method': 'rbf' # 'rbf', 'matern', 'ExpSineSquared', 'laplacian_kernel', 'polynomial'
+    }
+    
     configurations = ['conf_1', 'conf_2', 'conf_3', 'conf_4', 'conf_5'] 
+
+    n_trains = hyper_para['n_train']
+    stds = hyper_para['stds']
+    reps = hyper_para['reps']
+    batch_size = hyper_para['batch_size']
+
+    epoch_out = hyper_para['epoch_out']
+    fit_obj = hyper_para['fit_obj']
+    if fit_obj == 'residual':
+        loss_space = 'L2'
+        out_stop_cri = 'MSE'
+    elif fit_obj == 'y':
+        loss_space = 'RKHS'
+        out_stop_cri = 'RKHS'
+        
+    epoch_in = hyper_para['epoch_in']
+    stop_criterion = hyper_para['stop_criterion']
+    lr = hyper_para['lr']
+
+    kernel_method = hyper_para['kernel_method']
 
     stat = Stat_Cali(loss_space, n_trains, batch_size, lr, stds, reps, epoch_in, epoch_out, kernel_method, fit_obj, stop_criterion, out_stop_cri, configurations)
     stat.run()

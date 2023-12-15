@@ -10,33 +10,33 @@ This repository contains the implementation for the "statistical calibration" in
 
 * Standard Deviation: We conducted 4 stds to demonstrate the effectiveness of our algorithms $\sigma^2$ = [0.1, 0.25, 0.5, 1].
 
-
 2. `main_real.py`: This file constains the python code for the real data.
 
-- The sample size is 19.
+* The sample size is 19.
 
-- The reponse variable is normalized current for maintaining a fixed membrane potential of -35mV
+* The reponse variable is normalized current for maintaining a fixed membrane potential of -35mV
 
-- The input variable is the logarithm of time.
+* The input variable is the logarithm of time.
 
-
-3. `utils.py`: This file constains the data generation code and corresponding functions.
+3. `utils.py`: This file contains the data generation code and corresponding functions.
 
 
 ## Requirement
 
 1. Create the conda env `rkhs_cal_env`
 
-```bash 
+```bash
 conda env create -f rkhs_cal_env.yaml
 ```
 
-2. Activate the cond env
+2. Activate the conda env
+
 ```bash
 conda activate rkhs_cal_env
 ```
 
 ## Run the experiment
+
 1. Run the simulation python script.
 
 ```bash
