@@ -4,7 +4,7 @@ This repository contains the implementation for the "statistical calibration" in
 
 ## File Overview
 
-1. main.py: This file contains the python code used in simulation studies.
+1. main_sim.py: This file contains the python code used in simulation studies.
 
 * Configuration: We conducted 5 configurations from conf_0 to conf_4 where in paper we use conf_1 to conf_5.
 
